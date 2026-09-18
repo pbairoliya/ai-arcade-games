@@ -1,36 +1,39 @@
 # ai-arcade-games
 
-Arcade games that learn to play themselves. Currently: **Snake**, played by a Deep Q-Network
-agent that starts knowing nothing and trains from its own collisions.
+A playable Snake implementation in PyGame, plus the scaffolding for a Deep Q-Network agent
+that learns to play it. Written **July 2023**; published to GitHub later, so the commit dates
+trail the work.
 
-*(Written July 2023; published to GitHub later, so the commit dates trail the work.)*
+**Status: unfinished.** The reinforcement-learning plumbing is written and the training loop
+runs end to end, but the Q-network itself was never implemented — `Agent.model` and
+`Agent.trainer` are still `None`. Preserved as-is rather than quietly polished.
 
-## How it works
+## What's here
 
-Three pieces, deliberately separated so the learning is swappable from the game:
+| File | Status | Role |
+|---|---|---|
+| `game.py` | complete | Snake as an RL environment — `play_step(action)` returns `(reward, done, score)` |
+| `snake_game.py` | complete | The human-playable version of the same game |
+| `agent.py` | scaffold | State encoding, replay memory, epsilon-greedy action selection, training loop |
 
-| File | Role |
-|---|---|
-| `snake_game.py` | The environment — board state, movement, collision, food placement, reward |
-| `agent.py` | The learner — state encoding, replay memory, epsilon-greedy exploration, training step |
-| `game.py` | A human-playable build of the same game, for comparison |
+## The part I'd keep
 
-The agent sees an 11-value state vector (immediate danger straight/right/left, current
-direction, and the food's relative position) rather than raw pixels, which is what makes
-training feasible on a laptop. Reward is `+10` for food, `-10` for dying, `0` otherwise.
-Exploration decays with games played, so early games are nearly random and later ones are
-nearly greedy.
+The state encoding in `Agent.get_state()` is the design decision worth reading. The agent
+never sees the board — it sees an 11-value boolean vector: danger straight / right / left,
+the four direction flags, and the food's position relative to the head. Feeding a network
+that instead of raw pixels is what makes this trainable on a laptop rather than a GPU cluster.
+
+Rewards are sparse by design: `+10` for food, `-10` for dying, `0` otherwise.
+
+## To finish it
+
+Implement `Linear_QNet` (2 layers is enough for an 11-value state) and a `QTrainer` exposing
+`train_step()`, then assign both in `Agent.__init__`. Everything calling them is already written.
 
 ## Running
 
 ```bash
-pip install torch pygame numpy
-python agent.py      # train the agent
-python game.py       # play it yourself
+pip install pygame numpy torch
+python snake_game.py   # play it yourself — works today
+python agent.py        # training loop — needs the model implemented first
 ```
-
-## What I took from it
-
-The interesting failure was reward shaping: with a distance-to-food reward the snake learned
-to circle the food forever rather than eat it, because orbiting scored better than the risk of
-approaching. Sparse rewards trained slower and worked.
